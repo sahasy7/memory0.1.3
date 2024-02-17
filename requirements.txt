@@ -4,3 +4,5 @@ langchain
 sentence_transformers
 qdrant-client 
 tiktoken
+openai
+langchain-openai
