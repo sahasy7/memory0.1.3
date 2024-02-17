@@ -1,11 +1,12 @@
 from sentence_transformers import SentenceTransformer
 import openai
 import streamlit as st
+import os 
 import qdrant_client
 from langchain_openai import OpenAIEmbeddings
 from langchain.vectorstores import Qdrant
 
-openai.api_key = st.secrets.openai_key
+os.environ['OPENAI_API_KEY']= st.secrets.openai_key
 QDRANT_API_KEY = st.secrets.QDRANT_API_KEY
 QDRANT_HOST = st.secrets.QDRANT_HOST
 
