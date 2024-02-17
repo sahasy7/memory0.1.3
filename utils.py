@@ -2,15 +2,34 @@ from sentence_transformers import SentenceTransformer
 import pinecone
 import openai
 import streamlit as st
-openai.api_key = ""
-model = SentenceTransformer('all-MiniLM-L6-v2')
+import qdrant_client
+from langchain_openai import OpenAIEmbeddings
+from langchain.vectorstores import Qdrant
 
-pinecone.init(api_key='', environment='us-east-1-aws')
-index = pinecone.Index('langchain-chatbot')
+openai.api_key = st.secrets.openai_key
+QDRANT_API_KEY = st.secrets.QDRANT_API_KEY
+QDRANT_HOST = st.secrets.QDRANT_HOST
+
+embeddings = OpenAIEmbeddings()
+
+def load_db():
+    client = qdrant_client.QdrantClient(
+        url=QDRANT_HOST,
+        api_key=QDRANT_API_KEY,
+    )
+    vector_store = Qdrant(
+        client = client,
+        collection_name = "gsm_demo.0.0.4",
+        embeddings = embeddings
+    )
+    print("connection established !")
+    return vector_store
+
+vectore_stor = load_db()
 
 def find_match(input):
-    input_em = model.encode(input).tolist()
-    result = index.query(input_em, top_k=2, includeMetadata=True)
+    input_em = embeddings.encode(input).tolist()
+    result = vectore_stor.as_retriever(input_em, top_k=2, includeMetadata=True)
     return result['matches'][0]['metadata']['text']+"\n"+result['matches'][1]['metadata']['text']
 
 def query_refiner(conversation, query):
