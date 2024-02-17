@@ -1,24 +1,26 @@
 from sentence_transformers import SentenceTransformer
-import openai
 import streamlit as st
 import os 
 import qdrant_client
 from langchain_openai import OpenAIEmbeddings
 from langchain.vectorstores import Qdrant
+from openai import OpenAI
 
-os.environ['OPENAI_API_KEY']= st.secrets.openai_key
+client = OpenAI(
+  api_key=st.secrets.openai_key,  # this is also the default, it can be omitted
+)
 QDRANT_API_KEY = st.secrets.QDRANT_API_KEY
 QDRANT_HOST = st.secrets.QDRANT_HOST
 
 embeddings = OpenAIEmbeddings()
 
 def load_db():
-    client = qdrant_client.QdrantClient(
+    clients = qdrant_client.QdrantClient(
         url=QDRANT_HOST,
         api_key=QDRANT_API_KEY,
     )
     vector_store = Qdrant(
-        client = client,
+        client = clients,
         collection_name = "gsm_demo.0.0.4",
         embeddings = embeddings
     )
