@@ -5,6 +5,7 @@ import qdrant_client
 from langchain_openai import OpenAIEmbeddings
 from langchain.vectorstores import Qdrant
 from openai import OpenAI
+from openai import AsyncOpenAI
 os.environ['OPENAI_API_KEY'] =st.secrets.openai_key
 client = OpenAI(
   api_key=st.secrets.openai_key,  # this is also the default, it can be omitted
@@ -35,7 +36,7 @@ def find_match(input):
     return result['matches'][0]['metadata']['text']+"\n"+result['matches'][1]['metadata']['text']
 
 def query_refiner(conversation, query):
-    rags = OpenAI()
+    rags = AsyncOpenAI()
     response = rags.Completion.create(
     model="text-davinci-003",
     prompt=f"Given the following user query and conversation log, formulate a question that would be the most relevant to provide the user with an answer from a knowledge base.\n\nCONVERSATION LOG: \n{conversation}\n\nQuery: {query}\n\nRefined Query:",
