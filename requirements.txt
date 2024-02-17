@@ -4,5 +4,5 @@ langchain
 sentence_transformers
 qdrant-client 
 tiktoken
-openai==0.28
+openai
 langchain-openai
