@@ -5,7 +5,7 @@ import qdrant_client
 from langchain_openai import OpenAIEmbeddings
 from langchain.vectorstores import Qdrant
 from openai import OpenAI
-
+os.environ['OPENAI_API_KEY'] =st.secrets.openai_key
 client = OpenAI(
   api_key=st.secrets.openai_key,  # this is also the default, it can be omitted
 )
