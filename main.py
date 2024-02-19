@@ -16,7 +16,7 @@ from langchain.schema import SystemMessage, AIMessage, HumanMessage
 from langchain.prompts import MessagesPlaceholder
 from langsmith import Client
 
-os.environ["LANGCHAIN_API_KEY"] = st.secrets.langchain
+os.environ["LANGCHAIN_API_KEY"] = st.secrets.LangSmith_API
 os.environ["OPENAI_API_KEY"] = st.secrets.openai_key
 client = Client()
 
