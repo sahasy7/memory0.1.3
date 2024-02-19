@@ -1,114 +1,66 @@
-import streamlit as st
-import os 
-from langchain.document_loaders import RecursiveUrlLoader
-from langchain.document_transformers import Html2TextTransformer
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores.faiss import FAISS
-from langchain.callbacks import StreamlitCallbackHandler
-from langchain.agents import OpenAIFunctionsAgent, AgentExecutor
-from langchain.agents.agent_toolkits import create_retriever_tool
-from langchain.agents.openai_functions_agent.agent_token_buffer_memory import (
-    AgentTokenBufferMemory,
-)
 from langchain.chat_models import ChatOpenAI
-from langchain.schema import SystemMessage, AIMessage, HumanMessage
-from langchain.prompts import MessagesPlaceholder
-from langsmith import Client
-
-os.environ["LANGCHAIN_API_KEY"] = st.secrets.LangSmith_API
-os.environ["OPENAI_API_KEY"] = st.secrets.openai_key
-client = Client()
-
-st.set_page_config(
-    page_title="ChatLangChain",
-    page_icon="🦜",
-    layout="wide",
-    initial_sidebar_state="collapsed",
+from langchain.chains import ConversationChain
+from langchain.chains.conversation.memory import ConversationBufferWindowMemory
+from langchain.prompts import (
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+    ChatPromptTemplate,
+    MessagesPlaceholder
 )
+import streamlit as st
+from streamlit_chat import message
+from utils import *
 
-"# Chat🦜🔗"
+st.subheader("Chatbot with Langchain, ChatGPT, Pinecone, and Streamlit")
 
+if 'responses' not in st.session_state:
+    st.session_state['responses'] = ["How can I assist you?"]
 
-@st.cache_resource(ttl="1h")
-def configure_retriever():
-    loader = RecursiveUrlLoader("https://docs.smith.langchain.com/")
-    raw_documents = loader.load()
-    docs = Html2TextTransformer().transform_documents(raw_documents)
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
-    )
-    documents = text_splitter.split_documents(docs)
-    embeddings = OpenAIEmbeddings()
-    vectorstore = FAISS.from_documents(documents, embeddings)
-    return vectorstore.as_retriever(search_kwargs={"k": 4})
+if 'requests' not in st.session_state:
+    st.session_state['requests'] = []
 
+llm = ChatOpenAI(model_name="gpt-3.5-turbo", openai_api_key="")
 
-tool = create_retriever_tool(
-    configure_retriever(),
-    "search_langsmith_docs",
-    "Searches and returns documents regarding LangSmith. LangSmith is a platform for debugging, testing, evaluating, and monitoring LLM applications. You do not know anything about LangSmith, so if you are ever asked about LangSmith you should use this tool.",
-)
-tools = [tool]
-llm = ChatOpenAI(temperature=0, streaming=True, model="gpt-4")
-message = SystemMessage(
-    content=(
-        "You are a helpful chatbot who is tasked with answering questions about LangSmith. "
-        "Unless otherwise explicitly stated, it is probably fair to assume that questions are about LangSmith. "
-        "If there is any ambiguity, you probably assume they are about that."
-    )
-)
-prompt = OpenAIFunctionsAgent.create_prompt(
-    system_message=message,
-    extra_prompt_messages=[MessagesPlaceholder(variable_name="history")],
-)
-agent = OpenAIFunctionsAgent(llm=llm, tools=tools, prompt=prompt)
-agent_executor = AgentExecutor(
-    agent=agent,
-    tools=tools,
-    verbose=True,
-    return_intermediate_steps=True,
-)
-memory = AgentTokenBufferMemory(llm=llm)
-starter_message = "Ask me anything about LangSmith!"
-if "messages" not in st.session_state or st.sidebar.button("Clear message history"):
-    st.session_state["messages"] = [AIMessage(content=starter_message)]
+if 'buffer_memory' not in st.session_state:
+            st.session_state.buffer_memory=ConversationBufferWindowMemory(k=3,return_messages=True)
 
 
-def send_feedback(run_id, score):
-    client.create_feedback(run_id, "user_score", score=score)
+system_msg_template = SystemMessagePromptTemplate.from_template(template="""Your friendly assistant is here to help! Remember, always provide clear, concise, and friendly responses within 10-40 words. value User time and aim to provide clear and concise responses. Maintain a positive and professional tone. Encourage users to visit the store subtly, without being pushy. Dont hallucinate. Let's make every interaction a delightful experience! 😊""")
 
 
-for msg in st.session_state.messages:
-    if isinstance(msg, AIMessage):
-        st.chat_message("assistant").write(msg.content)
-    elif isinstance(msg, HumanMessage):
-        st.chat_message("user").write(msg.content)
-    memory.chat_memory.add_message(msg)
+human_msg_template = HumanMessagePromptTemplate.from_template(template="{input}")
+
+prompt_template = ChatPromptTemplate.from_messages([system_msg_template, MessagesPlaceholder(variable_name="history"), human_msg_template])
+
+conversation = ConversationChain(memory=st.session_state.buffer_memory, prompt=prompt_template, llm=llm, verbose=True)
 
 
-if prompt := st.chat_input(placeholder=starter_message):
-    st.chat_message("user").write(prompt)
-    with st.chat_message("assistant"):
-        st_callback = StreamlitCallbackHandler(st.container())
-        response = agent_executor(
-            {"input": prompt, "history": st.session_state.messages},
-            callbacks=[st_callback],
-            include_run_info=True,
-        )
-        st.session_state.messages.append(AIMessage(content=response["output"]))
-        st.write(response["output"])
-        memory.save_context({"input": prompt}, response)
-        st.session_state["messages"] = memory.buffer
-        run_id = response["__run"].run_id
 
-        col_blank, col_text, col1, col2 = st.columns([10, 2, 1, 1])
-        with col_text:
-            st.text("Feedback:")
 
-        with col1:
-            st.button("👍", on_click=send_feedback, args=(run_id, 1))
+# container for chat history
+response_container = st.container()
+# container for text box
+textcontainer = st.container()
 
-        with col2:
-            st.button("👎", on_click=send_feedback, args=(run_id, 0))
+
+with textcontainer:
+    query = st.text_input("Query: ", key="input")
+    if query:
+        with st.spinner("typing..."):
+            conversation_string = get_conversation_string()
+            # st.code(conversation_string)
+            refined_query = query_refiner(conversation_string, query)
+            st.subheader("Refined Query:")
+            st.write(refined_query)
+            context = find_match(refined_query)
+            # print(context)  
+            response = conversation.predict(input=f"Context:\n {context} \n\n Query:\n{query}")
+        st.session_state.requests.append(query)
+        st.session_state.responses.append(response) 
+with response_container:
+    if st.session_state['responses']:
+
+        for i in range(len(st.session_state['responses'])):
+            message(st.session_state['responses'][i],key=str(i))
+            if i < len(st.session_state['requests']):
+                message(st.session_state["requests"][i], is_user=True,key=str(i)+ '_user')
