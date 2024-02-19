@@ -5,8 +5,9 @@ import streamlit as st
 openai.api_key =st.secrets.openai_key
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-pinecone.init(api_key=st.secrets.pincone, environment='us-west-2-aws')
-index = pinecone.Index('gsm-demo')
+#pinecone.init(api_key=st.secrets.pincone, environment='us-west-2-aws')
+pc = Pinecone(api_key=st.secrets.pincone)
+index = pc.Index('gsm-demo')
 
 def find_match(input):
     input_em = model.encode(input).tolist()
