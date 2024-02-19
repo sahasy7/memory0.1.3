@@ -33,7 +33,3 @@ def get_conversation_string():
         conversation_string += "Human: "+st.session_state['requests'][i] + "\n"
         conversation_string += "Bot: "+ st.session_state['responses'][i+1] + "\n"
     return conversation_string
-        
-        conversation_string += "Human: "+st.session_state['requests'][i] + "\n"
-        conversation_string += "Bot: "+ st.session_state['responses'][i+1] + "\n"
-    return conversation_string
