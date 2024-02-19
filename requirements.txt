@@ -1,8 +1,7 @@
-streamlit
-streamlit_chat
 langchain
-sentence_transformers
-qdrant-client 
-tiktoken
+streamlit
+bs4
+html2text
 openai
-langchain-openai
+tiktoken
+faiss-cpu
