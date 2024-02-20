@@ -7,7 +7,7 @@ from openai import OpenAI
 import os
 openai.api_key =st.secrets.openai_key
 client = OpenAI(
-     os.environ.get("OPENAI_API_KEY") = st.secrets.openai_key
+     os.environ("OPENAI_API_KEY") = st.secrets.openai_key
 )
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
