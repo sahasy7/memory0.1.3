@@ -8,7 +8,7 @@ import os
 openai.api_key = st.secrets.openai_key
 
 # Initialize OpenAI client
-client = openai.OpenAI()
+client = openai.Client()
 
 # Initialize Sentence Transformer model
 model = SentenceTransformer('all-MiniLM-L6-v2')
