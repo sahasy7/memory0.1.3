@@ -3,7 +3,12 @@ import pinecone
 from pinecone import Pinecone
 import openai
 import streamlit as st
+from openai import OpenAI
+import os
 openai.api_key =st.secrets.openai_key
+client = OpenAI(
+     os.environ.get("OPENAI_API_KEY") = st.secrets.openai_key
+)
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 #pinecone.init(api_key=st.secrets.pincone, environment='us-west-2-aws')
@@ -17,7 +22,7 @@ def find_match(input):
 
 def query_refiner(conversation, query):
 
-    response = openai.Completion.create(
+    response = client.chat.completions.create(
     model="text-davinci-003",
     prompt=f"Given the following user query and conversation log, formulate a question that would be the most relevant to provide the user with an answer from a knowledge base.\n\nCONVERSATION LOG: \n{conversation}\n\nQuery: {query}\n\nRefined Query:",
     temperature=0.7,
